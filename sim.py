@@ -21,4 +21,26 @@ class ProcessSimulator:
         self.env.process(process_generator())
         self.env.run()
         return self.process_times
+
+    def process(self, name):
+        memory_needed = rd.randint(1, 10)
+        total_instructions = rd.randint(1, 10)
+        start_time = self.env.now
+        
+        # Se obtiene la memoria necesaria
+        with self.ram.get(memory_needed) as req:
+            yield req
+            
+            while total_instructions > 0:
+                with self.cpu.request() as req_cpu:
+                    yield req_cpu
+                    executed = min(self.cpu_speed, total_instructions)
+                    total_instructions -= executed
+                    yield self.env.timeout(1)
+                    
+                    if total_instructions > 0 and rd.randint(1, 21) == 1:
+                        yield self.env.timeout(1) # Se interrumpe el proceso por 1 unidad de tiempo
+            
+        self.ram.put(memory_needed)
+        self.process_times.append(self.env.now - start_time)
    
